@@ -59,7 +59,7 @@ const createOrder = (newOrder) => {
                     isPaid, paidAt
                 })
                 if (createdOrder) {
-                    await EmailService.sendEmailCreateOrder(email,orderItems)
+                    // await EmailService.sendEmailCreateOrder(email,orderItems)
                     resolve({
                         status: 'OK',
                         message: 'success'
