@@ -1,5 +1,53 @@
 const UserService = require('../services/UserService')
 const JwtService = require('../services/JwtService')
+const { OAuth2Client } = require('google-auth-library')
+const dotenv = require('dotenv')
+dotenv.config()
+
+const getUserData = async (access_token) => {
+    const headers = {
+        Authorization: `Bearer ${access_token}`,
+    };      
+    const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers,
+    });
+    const data = await response.json();
+    console.log('data', data)
+    return data
+}
+
+const loginWithGoogle = async (req, res) => {
+    const { code } = req.body;
+
+    const oAuth2Client = new OAuth2Client(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.redirect_uris
+    );
+    
+    const token = await oAuth2Client.getToken(code);
+    await oAuth2Client.setCredentials(token.tokens); 
+    console.log("Tokens acquired")
+    const user = oAuth2Client.credentials;
+    console.log('credentials', user);
+    const data = await getUserData(user.access_token)
+
+    const response =  await UserService.loginWithGoogle(data)
+
+    if(response.refresh_token) {
+        const {refresh_token, ...newResponse} = response
+        
+        res.cookie('refresh_token', refresh_token, {
+            httpOnly: true,
+            secure: false,
+            samesite: 'strict'
+        })
+        return res.status(200).json(newResponse)
+    } else {
+        return res.status(200).json(response)
+    }
+}
+
 
 const createUser = async (req, res) => {
     try {
@@ -188,5 +236,6 @@ module.exports = {
     getDetailsUser,
     refreshToken,
     logoutUser,
-    deleteMany
+    deleteMany,
+    loginWithGoogle
 }
