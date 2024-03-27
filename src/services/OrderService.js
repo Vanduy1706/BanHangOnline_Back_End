@@ -59,7 +59,7 @@ const createOrder = (newOrder) => {
                     isPaid, paidAt
                 })
                 if (createdOrder) {
-                    // await EmailService.sendEmailCreateOrder(email,orderItems)
+                    await EmailService.sendEmailCreateOrder(email,orderItems)
                     resolve({
                         status: 'OK',
                         message: 'success'
@@ -114,6 +114,31 @@ const getDetailsOrder = (id) => {
                 data: order
             })
         } catch (e) {
+            reject(e)
+        }
+    })
+}
+
+const updateOrder = (id, data) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const checkOrder = await Order.findOne({
+                _id: id
+            })
+           if(checkOrder === null){
+                resolve({
+                    status: 'ERR',
+                    message: 'The Order is not defined'
+                })
+           }    
+
+           const updatedOrder = await Order.findByIdAndUpdate(id, data, { new: true })
+            resolve({
+                status: 'OK',
+                message: 'SUCCESS',
+                data: updatedOrder
+            })
+        }catch (e) {
             reject(e)
         }
     })
@@ -191,5 +216,6 @@ module.exports = {
     getOrderDetails,
     getDetailsOrder,
     cancelOrderDetails,
-    getAllOrder
+    getAllOrder,
+    updateOrder
 }

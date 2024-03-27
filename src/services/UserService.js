@@ -2,10 +2,89 @@ const User = require("../models/UserModel")
 const bcrypt = require("bcrypt")
 const { genneralAccessToken, genneralRefreshToken } = require("./JwtService")
 
+const loginWithGoogle = (newUserGoogle) => {
+    return new Promise(async (resolve, reject) => {
+        const { sub, email, name, picture } = newUserGoogle
+        try {
+            const checkUser = await User.findOne({
+                email: email
+            })
+            if(checkUser !== null){
+                const comparePassword = bcrypt.compareSync(sub, checkUser.password)
+
+                if(!comparePassword) {
+                    resolve({
+                        status: 'ERR',
+                        message: 'Email is valid'
+                    })
+                } else {
+                    const access_token = await genneralAccessToken({
+                        id: checkUser.id,
+                        isAdmin: checkUser.isAdmin
+                    })
+        
+                    const refresh_token = await genneralRefreshToken({
+                        id: checkUser.id,
+                        isAdmin: checkUser.isAdmin
+                    })
+                    resolve({
+                        status: 'OK',
+                        message: 'SUCCESS',
+                        access_token,
+                        refresh_token
+                    })
+                }
+            } else {
+                const hash = bcrypt.hashSync(sub, 10)
+                const createdUserGoogle = await User.create({
+                    name, 
+                    email, 
+                    password: hash, 
+                    avatar: picture
+                })
+                
+                if(createdUserGoogle){
+                    const checkUserGoogle = await User.findOne({
+                        email: email
+                    })
+
+                    if(checkUserGoogle !== null){
+                        const comparePassword = bcrypt.compareSync(sub, checkUserGoogle.password)
+        
+                        if(!comparePassword) {
+                            resolve({
+                                status: 'ERR',
+                                message: 'The password or user is incorrect'
+                            })
+                        }
+                        const access_token = await genneralAccessToken({
+                            id: checkUserGoogle.id,
+                            isAdmin: checkUserGoogle.isAdmin
+                        })
+            
+                        const refresh_token = await genneralRefreshToken({
+                            id: checkUserGoogle.id,
+                            isAdmin: checkUserGoogle.isAdmin
+                        })
+                        resolve({
+                            status: 'OK',
+                            message: 'SUCCESS',
+                            access_token,
+                            refresh_token
+                        })
+                    }
+                }
+            }
+        } catch (error) {
+            reject(error)
+        }
+    })
+}
+
 const createUser = (newUser) => {
     return new Promise(async (resolve, reject) => {
         const { name, email, password, confirmPassword, phone } = newUser
-        try {
+        try { 
             const checkUser = await User.findOne({
                 email: email
             })
@@ -189,5 +268,6 @@ module.exports = {
     deleteUser,
     getAllUser,
     getDetailsUser,
-    deleteManyUser
+    deleteManyUser,
+    loginWithGoogle
 }
